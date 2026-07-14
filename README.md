@@ -48,13 +48,14 @@ npm start       # node dist/index.js
 Environment variables are read and validated at startup, if a required variable
 is missing, the process aborts with an error.
 
-| Variable        | Required | Description                                          |
-| --------------- | -------- | ---------------------------------------------------- |
-| `RELAY_TOKEN`   | yes      | Shared secret; checked against `?token=`             |
-| `NTFY_URL`      | yes      | Base URL of the ntfy server, e.g. `https://ntfy.foo` |
-| `NTFY_USERNAME` | yes\*    | Username for ntfy basic auth                         |
-| `NTFY_PASSWORD` | yes\*    | Password for ntfy basic auth                         |
-| `NTFY_TOKEN`    | –        | Bearer token for ntfy (not implemented yet)          |
+| Variable              | Required | Description                                                                 |
+| --------------------- | -------- | --------------------------------------------------------------------------- |
+| `RELAY_TOKEN`         | yes      | Shared secret; checked against `?token=`                                    |
+| `RATELIMIT_WHITELIST` | no       | A comma-separated string of IP addresses whitelisted from the rate limiter |
+| `NTFY_URL`            | yes      | Base URL of the ntfy server, e.g. `https://ntfy.foo`                        |
+| `NTFY_USERNAME`       | yes\*    | Username for ntfy basic auth                                                |
+| `NTFY_PASSWORD`       | yes\*    | Password for ntfy basic auth                                                |
+| `NTFY_TOKEN`          | –        | Bearer token for ntfy (not implemented yet)                                 |
 
 \* You must set either `NTFY_USERNAME` **and** `NTFY_PASSWORD`, or `NTFY_TOKEN`.
 Currently only the **basic-auth path** is implemented; if only `NTFY_TOKEN` is set,
