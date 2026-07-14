@@ -4,9 +4,9 @@ import { isAuthorized } from "./utils.js";
 
 type CoolifyNotificationWebhookPayload = {
     success: boolean;
-    event: string;
-    message: string;
-    applicationName: string;
+    event: string; // deployment_failed
+    message: string; // Deployment failed
+    applicationName: string; // my-app
     deploymentUrl: string;
 };
 
@@ -27,8 +27,8 @@ ntfy.post("/:topic", async(c) => {
         return c.json({ message: "Bad Request" }, 400);
     }
 
-    const message = body.message || body.event;
     const title = body.event;
+    const message = `${body.message} for ${body.applicationName} with ${body.deploymentUrl}`;
 
     if (config.NTFY_USERNAME && config.NTFY_PASSWORD) {
         let res: Response;

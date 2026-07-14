@@ -92,7 +92,11 @@ The ntfy JSON body is derived from the Coolify payload:
 
 - **`topic`**: from the path parameter.
 - **`title`**: from `event`.
-- **`message`**: from `message` (fallback: `event`).
+- **`message`**: `message` plus the `applicationName` and `deploymentUrl` for context.
+
+> This mapping is still very basic: it does not yet distinguish `success` from
+> failure, nor the different event types (deployment, backup, …). See the
+> [Roadmap](#roadmap).
 
 ## Security
 
@@ -173,6 +177,8 @@ click "Send test notification".
 ## Roadmap
 
 - Bearer-token auth for ntfy (`NTFY_TOKEN` branch)
+- Distinguish `success` from failure in the message (priority, tags/emoji)
+- Handle the different Coolify event types (deployment, backup, …) with tailored messages
 - Rich mapping: derive priority, tags/emoji, and click URL from Coolify fields
 - `/health` endpoint for liveness checks
 - `PORT` from configuration instead of hardcoded
