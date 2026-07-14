@@ -10,7 +10,8 @@
     "dependencies": {
         "@hono/node-server": "^2.0.8",
         "dotenv": "^17.4.2",
-        "hono": "^4.12.30"
+        "hono": "^4.12.30",
+        "hono-throttle": "^1.0.0"
     },
     "devDependencies": {
         "@moritz-grimm/eslint-config": "^2.2.0",
