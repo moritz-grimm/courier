@@ -182,5 +182,4 @@ click "Send test notification".
 - Handle the different Coolify event types (deployment, backup, …) with tailored messages
 - Rich mapping: derive priority, tags/emoji, and click URL from Coolify fields
 - Dockerfile for container deployment
-- Entropy check for `RELAY_TOKEN` at startup (reject short/weak secrets, fail fast)
 - Test suite with [Vitest](https://vitest.dev)
