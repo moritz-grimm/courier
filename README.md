@@ -181,7 +181,6 @@ click "Send test notification".
 - Distinguish `success` from failure in the message (priority, tags/emoji)
 - Handle the different Coolify event types (deployment, backup, …) with tailored messages
 - Rich mapping: derive priority, tags/emoji, and click URL from Coolify fields
-- `/health` endpoint for liveness checks
 - Dockerfile for container deployment
 - Entropy check for `RELAY_TOKEN` at startup (reject short/weak secrets, fail fast)
 - Test suite with [Vitest](https://vitest.dev)
