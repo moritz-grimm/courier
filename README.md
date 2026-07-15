@@ -48,14 +48,15 @@ npm start       # node dist/index.js
 Environment variables are read and validated at startup, if a required variable
 is missing, the process aborts with an error.
 
-| Variable              | Required | Description                                                                 |
-| --------------------- | -------- | --------------------------------------------------------------------------- |
-| `RELAY_TOKEN`         | yes      | Shared secret; checked against `?token=`                                    |
+| Variable              | Required | Description                                                                |
+| --------------------- | -------- | -------------------------------------------------------------------------- |
+| `PORT`                | no       | Port the application runs on   (default: `3000`)                           |
+| `RELAY_TOKEN`         | yes      | Shared secret; checked against `?token=`                                   |
 | `RATELIMIT_WHITELIST` | no       | A comma-separated string of IP addresses whitelisted from the rate limiter |
-| `NTFY_URL`            | yes      | Base URL of the ntfy server, e.g. `https://ntfy.foo`                        |
-| `NTFY_USERNAME`       | yes\*    | Username for ntfy basic auth                                                |
-| `NTFY_PASSWORD`       | yes\*    | Password for ntfy basic auth                                                |
-| `NTFY_TOKEN`          | –        | Bearer token for ntfy (not implemented yet)                                 |
+| `NTFY_URL`            | yes      | Base URL of the ntfy server, e.g. `https://ntfy.foo`                       |
+| `NTFY_USERNAME`       | yes\*    | Username for ntfy basic auth                                               |
+| `NTFY_PASSWORD`       | yes\*    | Password for ntfy basic auth                                               |
+| `NTFY_TOKEN`          | –        | Bearer token for ntfy (not implemented yet)                                |
 
 \* You must set either `NTFY_USERNAME` **and** `NTFY_PASSWORD`, or `NTFY_TOKEN`.
 Currently only the **basic-auth path** is implemented; if only `NTFY_TOKEN` is set,
@@ -181,7 +182,6 @@ click "Send test notification".
 - Handle the different Coolify event types (deployment, backup, …) with tailored messages
 - Rich mapping: derive priority, tags/emoji, and click URL from Coolify fields
 - `/health` endpoint for liveness checks
-- `PORT` from configuration instead of hardcoded
 - Dockerfile for container deployment
 - Entropy check for `RELAY_TOKEN` at startup (reject short/weak secrets, fail fast)
 - Test suite with [Vitest](https://vitest.dev)
