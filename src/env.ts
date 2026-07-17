@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-export type Config = {
+export type Env = {
     PORT: number;
     RELAY_TOKEN: string;
     NTFY_URL: string;
@@ -22,7 +22,7 @@ if (!relayToken || !ntfyUrl || (!ntfyToken && !(ntfyUsername && ntfyPassword))) 
 if (relayToken.length < 32) throw new Error("RELAY_TOKEN must be at least 32 characters long");
 if (!Number.isInteger(port) || port <= 1024 || port >= 65553) throw new Error("Invalid PORT .env configuration");
 
-export const config: Config = {
+export const env: Env = {
     PORT: port,
     RELAY_TOKEN: relayToken,
     RATELIMIT_WHITELIST: ratelimitWhitelist,

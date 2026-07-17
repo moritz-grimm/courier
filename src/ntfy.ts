@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { config } from "./config.js";
+import { env } from "./env.js";
 import { isAuthorized } from "./utils.js";
 
 type CoolifyNotificationWebhookPayload = {
@@ -30,14 +30,14 @@ ntfy.post("/:topic", async(c) => {
     const title = body.event;
     const message = `${body.message} for ${body.applicationName} with ${body.deploymentUrl}`;
 
-    if (config.NTFY_USERNAME && config.NTFY_PASSWORD) {
+    if (env.NTFY_USERNAME && env.NTFY_PASSWORD) {
         let res: Response;
         try {
-            res = await fetch(config.NTFY_URL, {
+            res = await fetch(env.NTFY_URL, {
                 method: "POST",
                 body: JSON.stringify({ topic, title, message }),
                 headers: {
-                    "Authorization": "Basic " + Buffer.from(`${config.NTFY_USERNAME}:${config.NTFY_PASSWORD}`).toString("base64"),
+                    "Authorization": "Basic " + Buffer.from(`${env.NTFY_USERNAME}:${env.NTFY_PASSWORD}`).toString("base64"),
                     "Content-Type": "application/json",
                 },
             });

@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { config } from "./config.js";
+import { env } from "./env.js";
 
 
 export function isAuthorized(queryToken: string | undefined): boolean {
@@ -8,7 +8,7 @@ export function isAuthorized(queryToken: string | undefined): boolean {
     }
 
     const queryTokenBuffer = Buffer.from(queryToken);
-    const envTokenBuffer = Buffer.from(config.RELAY_TOKEN);
+    const envTokenBuffer = Buffer.from(env.RELAY_TOKEN);
 
     if (queryTokenBuffer.length !== envTokenBuffer.length) {
         return false;
