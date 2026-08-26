@@ -6,8 +6,13 @@ type CoolifyNotificationWebhookPayload = {
     success: boolean;
     event: string; // deployment_failed
     message: string; // Deployment failed
-    applicationName: string; // my-app
-    deploymentUrl: string;
+    application_name: string; // my-app"
+    application_uuid: string;
+    deployment_uuid: string;
+    deployment_url: string;
+    project: string;
+    environment: string;
+    fqdn: string;
 };
 
 const ntfy = new Hono();
@@ -28,7 +33,7 @@ ntfy.post("/:topic", async(c) => {
     }
 
     const title = body.event;
-    const message = `${body.message} for ${body.applicationName} with ${body.deploymentUrl}`;
+    const message = `${body.message} for ${body.application_name} with ${body.deployment_url}`;
 
     if (env.NTFY_USERNAME && env.NTFY_PASSWORD) {
         let res: Response;
