@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { env } from "./env.js";
-
+import { env } from "../env.js";
 
 export function isAuthorized(queryToken: string | undefined): boolean {
     if (!queryToken) {

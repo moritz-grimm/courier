@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { env } from "./env.js";
-import { isAuthorized } from "./utils.js";
+import { env } from "../env.js";
+import { isAuthorized } from "../lib/utils.js";
 
 type CoolifyNotificationWebhookPayload = {
     success: boolean;
