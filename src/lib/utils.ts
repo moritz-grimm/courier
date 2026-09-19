@@ -19,3 +19,11 @@ export function isAuthorized(queryToken: string | undefined): boolean {
 
     return true;
 }
+
+export function truncateTail(text: string, max: number): string {
+    if (text.length <= max) {
+        return text.trim();
+    }
+
+    return `[...] ${text.slice(text.length - max).trim()}`;
+}
