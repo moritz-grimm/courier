@@ -5,11 +5,13 @@ authenticated messages to a self-hosted **[ntfy](https://ntfy.sh)** service.
 
 ## Why?
 
-Coolify can only send notifications to a plain **URL** without any auth header. A self-hosted ntfy, however, may requires authentication. As a
-result, Coolify cannot publish to ntfy directly.
+Coolify can only send notifications to a plain **URL** without any auth header.
+A self-hosted ntfy, however, may require authentication. As a result, Coolify
+cannot publish to ntfy directly.
 
 Courier bridges that gap: the caller authenticates via a **query parameter**
-(`?token=…`). Courier verifies the token, maps the Coolify payload into an ntfy message, and publishes it using the real ntfy credentials.
+(`?token=…`). Courier verifies the token, maps the Coolify payload into an ntfy
+message, and publishes it using the real ntfy credentials.
 
 ## Setup
 
@@ -50,24 +52,28 @@ is missing, the process aborts with an error.
 
 | Variable              | Required | Description                                                                |
 | --------------------- | -------- | -------------------------------------------------------------------------- |
-| `PORT`                | no       | Port the application runs on   (default: `3000`)                           |
-| `RELAY_TOKEN`         | yes      | Shared secret; checked against `?token=`                                   |
+| `PORT`                | no       | Port the application runs on (default: `3000`)                             |
+| `RELAY_TOKEN`         | yes      | Shared secret; checked against `?token=`. At least 32 characters           |
 | `RATELIMIT_WHITELIST` | no       | A comma-separated string of IP addresses whitelisted from the rate limiter |
 | `NTFY_URL`            | yes      | Base URL of the ntfy server, e.g. `https://ntfy.foo`                       |
 | `NTFY_USERNAME`       | yes\*    | Username for ntfy basic auth                                               |
 | `NTFY_PASSWORD`       | yes\*    | Password for ntfy basic auth                                               |
-| `NTFY_TOKEN`          | –        | Bearer token for ntfy (not implemented yet)                                |
+| `NTFY_TOKEN`          | yes\*    | Access token for ntfy, sent as a bearer token                              |
 
 \* You must set either `NTFY_USERNAME` **and** `NTFY_PASSWORD`, or `NTFY_TOKEN`.
-Currently only the **basic-auth path** is implemented; if only `NTFY_TOKEN` is set,
-the relay responds with `501 Not Implemented`.
+If both are configured, the token wins and basic auth is ignored.
 
-## Endpoint
+All requests are rate limited to 100 per 15 minutes per IP, except for the
+addresses in `RATELIMIT_WHITELIST`.
 
-| Method | Path                          | Purpose                          |
-| ------ | ----------------------------- | -------------------------------- |
-| `POST` | `/ntfy/coolify/:topic?token=` | Accept & forward Coolify webhook |
+## Endpoints
 
+| Method | Path                          | Purpose                            |
+| ------ | ----------------------------- | ---------------------------------- |
+| `POST` | `/ntfy/:source/:topic?token=` | Accept & forward a webhook to ntfy |
+| `GET`  | `/health`                     | Liveness check, always `200`       |
+
+- `:source`: the system the payload comes from. Currently only `coolify`.
 - `:topic`: the ntfy topic to publish to
 - `?token=`: must match `RELAY_TOKEN`
 
@@ -79,25 +85,60 @@ https://relay.example.com/ntfy/coolify/deploys?token=SECRET
 
 ### Responses
 
-| Status | Meaning                                                   |
-| ------ | --------------------------------------------------------- |
-| `204`  | Successfully forwarded to ntfy                            |
-| `400`  | Body is not valid JSON                                    |
-| `401`  | `token` missing or incorrect                              |
-| `501`  | Only `NTFY_TOKEN` set (bearer branch not yet implemented) |
-| `502`  | ntfy responded non-2xx, or a network error occurred       |
+| Status | Meaning                                                          |
+| ------ | ---------------------------------------------------------------- |
+| `204`  | Successfully forwarded to ntfy                                   |
+| `400`  | Body is not valid JSON or not an object, or `:source` is unknown |
+| `401`  | `token` missing or incorrect                                     |
+| `429`  | Rate limit exceeded                                              |
+| `500`  | Unexpected error while forwarding                                |
+| `502`  | ntfy responded non-2xx, or a network error occurred              |
 
 ### Coolify to ntfy mapping
 
-The ntfy JSON body is derived from the Coolify payload:
+Each webhook is formatted into an internal `Notification` (`title`, `message`,
+`severity`, optional `url`), which the ntfy notifier then publishes:
 
-- **`topic`**: from the path parameter.
-- **`title`**: from `event`.
-- **`message`**: `message` plus the `applicationName` and `deploymentUrl` for context.
+| `Notification` | ntfy field | Note                                            |
+| -------------- | ---------- | ----------------------------------------------- |
+| `title`        | `title`    | Event plus the affected resource                |
+| `message`      | `message`  | Coolify's `message`, sometimes extended         |
+| `severity`     | `priority` | `info` => `2`, `warning` => `4`, `error` => `5` |
+| `url`          | `click`    | Omitted when the payload carries no URL         |
 
-> This mapping is still very basic: it does not yet distinguish `success` from
-> failure, nor the different event types (deployment, backup, …). See the
-> [Roadmap](#roadmap).
+Events that carry free-form output (backup stderr, task output, cleanup logs)
+append it to the message, truncated to the **last** 500 characters. A truncated
+detail is prefixed with `[...]`.
+
+### Handled events
+
+All 20 documented Coolify event types are mapped:
+
+| Event                            | Severity  | Message extended with      |
+| -------------------------------- | --------- | -------------------------- |
+| `deployment_success`             | `info`    | –                          |
+| `deployment_failed`              | `error`   | –                          |
+| `status_changed`                 | `error`   | –                          |
+| `restart_limit_reached`          | `error`   | Restart count and limit    |
+| `backup_success`                 | `info`    | –                          |
+| `backup_failed`                  | `error`   | `error_output`             |
+| `backup_success_with_s3_warning` | `warning` | `s3_error`                 |
+| `task_success`                   | `info`    | `output`                   |
+| `task_failed`                    | `error`   | `output`                   |
+| `docker_cleanup_success`         | `info`    | `cleanup_message`          |
+| `docker_cleanup_failed`          | `error`   | `error_message`            |
+| `server_reachable`               | `info`    | –                          |
+| `server_unreachable`             | `error`   | –                          |
+| `high_disk_usage`                | `warning` | Usage and threshold        |
+| `server_patch_check`             | `info`    | Update and critical counts |
+| `server_patch_check_error`       | `error`   | `error`                    |
+| `traefik_version_outdated`       | `warning` | Per-server version list    |
+| `container_stopped`              | `error`   | –                          |
+| `container_restarted`            | `warning` | –                          |
+| `test`                           | `info`    | –                          |
+
+An event Coolify introduces later still gets through: it is published as
+`Unhandled Coolify event: <event>` with `warning` severity.
 
 ## Security
 
@@ -131,25 +172,35 @@ That leaves one relevant residual risk and a few hardening steps:
 
 The token lives in a single env var, so rotation is quick:
 
-1. Generate a new secret:
+1. Generate a new secret, e.g. with `openssl rand -hex 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 2. Update `RELAY_TOKEN` in your `.env`.
 3. Update the `?token=` value in the Coolify webhook notification URL.
-4. Restart Courier so the new value is picked up:
+4. Restart Courier so the new value is picked up.
 
 ## Testing
 
 ```bash
-# Simulate a successful deployment
+# Simulate a failed deployment
 curl -X POST "http://localhost:3000/ntfy/coolify/deploys?token=SECRET" \
   -H "Content-Type: application/json" \
   -d '{
-        "success": true,
-        "event": "deployment_success",
-        "message": "New version successfully deployed",
-        "applicationName": "my-app",
-        "deploymentUrl": "https://my-app.example.com"
+        "success": false,
+        "event": "deployment_failed",
+        "message": "Deployment failed",
+        "application_name": "my-app",
+        "application_uuid": "abc123",
+        "deployment_uuid": "def456",
+        "deployment_url": "https://coolify.example.com/deployment/def456",
+        "project": "my-project",
+        "environment": "production",
+        "fqdn": "https://my-app.example.com"
       }'
-# -> 204, message appears in the ntfy topic "deploys"
+# -> 204, "Deployment failed: my-app (production)" appears in the topic "deploys"
+
+# Unknown source
+curl -X POST "http://localhost:3000/ntfy/github/deploys?token=SECRET" \
+  -H "Content-Type: application/json" -d '{"event":"test"}'
+# -> 400
 
 # Wrong token
 curl -X POST "http://localhost:3000/ntfy/coolify/deploys?token=wrong" \
@@ -162,13 +213,21 @@ click "Send test notification".
 
 ## Project structure
 
-| File            | Purpose                                                    |
-| --------------- | ---------------------------------------------------------- |
-| `src/index.ts`  | Server bootstrap (`@hono/node-server`, port 3000)          |
-| `src/app.ts`    | Hono app, mounts the ntfy router under `/ntfy/coolify`     |
-| `src/ntfy.ts`   | Webhook handler: auth check, payload mapping, POST to ntfy |
-| `src/config.ts` | Load & validate env, export typed `config` object          |
-| `src/utils.ts`  | `isAuthorized()` — timing-safe token comparison            |
+The layout follows the two axes the relay spans: the **source** a payload comes
+from (formatters) and the **target** it is published to (notifiers).
+
+| File                         | Purpose                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| `src/index.ts`               | Server bootstrap (`@hono/node-server`)                 |
+| `src/app.ts`                 | Hono app: rate limiter, mounts `/ntfy` and `/health`   |
+| `src/env.ts`                 | Load & validate env, export typed `env` object         |
+| `src/lib/utils.ts`           | `isAuthorized()` timing-safe compare, `truncateTail()` |
+| `src/routes/ntfy.ts`         | HTTP layer only: auth, body, status codes              |
+| `src/routes/health.ts`       | Liveness endpoint                                      |
+| `src/formatters/registry.ts` | Maps the `:source` path segment to a formatter         |
+| `src/formatters/coolify/*`   | Coolify payload types and the event formatter          |
+| `src/notifiers/ntfy.ts`      | ntfy transport: auth, JSON body, POST                  |
+| `src/notifiers/types.ts`     | `Notification` and `NotifyResult` shapes               |
 
 ## Stack
 
@@ -177,9 +236,6 @@ click "Send test notification".
 
 ## Roadmap
 
-- Bearer-token auth for ntfy (`NTFY_TOKEN` branch)
-- Distinguish `success` from failure in the message (priority, tags/emoji)
-- Handle the different Coolify event types (deployment, backup, …) with tailored messages
-- Rich mapping: derive priority, tags/emoji, and click URL from Coolify fields
+- Tags/emoji per severity
 - Dockerfile for container deployment
 - Test suite with [Vitest](https://vitest.dev)
