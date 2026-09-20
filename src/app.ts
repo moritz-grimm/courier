@@ -12,7 +12,7 @@ app.use(rateLimiter({
     whitelist: env.RATELIMIT_WHITELIST,
 }));
 
-app.route("/ntfy/coolify", ntfy);
+app.route("/ntfy", ntfy);
 app.route("/health", health);
 
 export default app;

@@ -1,23 +1,12 @@
 import { Hono } from "hono";
-import { env } from "../env.js";
+import { FORMATTERS } from "../formatters/registry.js";
 import { isAuthorized } from "../lib/utils.js";
-
-type CoolifyNotificationWebhookPayload = {
-    success: boolean;
-    event: string; // deployment_failed
-    message: string; // Deployment failed
-    application_name: string; // my-app"
-    application_uuid: string;
-    deployment_uuid: string;
-    deployment_url: string;
-    project: string;
-    environment: string;
-    fqdn: string;
-};
+import { send } from "../notifiers/ntfy.js";
 
 const ntfy = new Hono();
 
-ntfy.post("/:topic", async(c) => {
+ntfy.post("/:source/:topic", async(c) => {
+    const source = c.req.param("source");
     const topic = c.req.param("topic");
     const token = c.req.query("token");
 
@@ -27,41 +16,25 @@ ntfy.post("/:topic", async(c) => {
         }, 401);
     }
 
-    const body = await c.req.json<CoolifyNotificationWebhookPayload>().catch(() => null);
-    if (!body) {
+    const body = await c.req.json<unknown>().catch(() => null);
+    if (!body || typeof body !== "object") {
         return c.json({ message: "Bad Request" }, 400);
     }
 
-    const title = body.event;
-    const message = `${body.message} for ${body.application_name} with ${body.deployment_url}`;
+    const format = FORMATTERS[source];
+    if (!format) return c.body("Unknown source", 400);
+    const notification = format(body);
 
-    if (env.NTFY_USERNAME && env.NTFY_PASSWORD) {
-        let res: Response;
-        try {
-            res = await fetch(env.NTFY_URL, {
-                method: "POST",
-                body: JSON.stringify({ topic, title, message }),
-                headers: {
-                    "Authorization": "Basic " + Buffer.from(`${env.NTFY_USERNAME}:${env.NTFY_PASSWORD}`).toString("base64"),
-                    "Content-Type": "application/json",
-                },
-            });
-        } catch (err) {
-            console.error("Network error posting to ntfy", err);
-            return c.json({ message: "Bad Gateway" }, 502);
-        }
+    try {
+        const res = await send(topic, notification);
 
-        if (!res.ok) {
-            console.error(`Error posting to ntfy: ${res.status}`);
-            return c.json({ message: "Bad Gateway" }, 502);
-        }
-
-        return c.body(null, 204);
+        if (!res.ok) return c.body(res.message, res.status);
+    } catch (err) {
+        console.error("Internal Server Error", err);
+        return c.body("Internal Server Error", 500);
     }
 
-    // later with access token
-    console.log("Not implemented access token branch");
-    return c.json({ message: "Not Implemented" }, 501);
+    return c.body(null, 204);
 });
 
 export default ntfy;
