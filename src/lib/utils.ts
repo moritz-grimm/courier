@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { env } from "./env.js";
-
+import { env } from "../env.js";
 
 export function isAuthorized(queryToken: string | undefined): boolean {
     if (!queryToken) {
@@ -19,4 +18,12 @@ export function isAuthorized(queryToken: string | undefined): boolean {
     }
 
     return true;
+}
+
+export function truncateTail(text: string, max: number): string {
+    if (text.length <= max) {
+        return text.trim();
+    }
+
+    return `[...] ${text.slice(text.length - max).trim()}`;
 }

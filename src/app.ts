@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import ntfy from "./ntfy.js";
 import { rateLimiter } from "hono-throttle";
 import { env } from "./env.js";
-import health from "./health.js";
+import health from "./routes/health.js";
+import ntfy from "./routes/ntfy.js";
 
 const app = new Hono();
 
@@ -12,7 +12,7 @@ app.use(rateLimiter({
     whitelist: env.RATELIMIT_WHITELIST,
 }));
 
-app.route("/ntfy/coolify", ntfy);
+app.route("/ntfy", ntfy);
 app.route("/health", health);
 
 export default app;
