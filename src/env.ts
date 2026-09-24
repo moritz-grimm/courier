@@ -20,7 +20,7 @@ const ntfyPassword = process.env.NTFY_PASSWORD;
 
 if (!relayToken || !ntfyUrl || (!ntfyToken && !(ntfyUsername && ntfyPassword))) throw new Error("Required .env property missing");
 if (relayToken.length < 32) throw new Error("RELAY_TOKEN must be at least 32 characters long");
-if (!Number.isInteger(port) || port <= 1024 || port >= 65553) throw new Error("Invalid PORT .env configuration");
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Invalid PORT .env configuration");
 
 export const env: Env = {
     PORT: port,
