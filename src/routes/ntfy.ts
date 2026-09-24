@@ -22,16 +22,16 @@ ntfy.post("/:source/:topic", async(c) => {
     }
 
     const format = FORMATTERS[source];
-    if (!format) return c.body("Unknown source", 400);
+    if (!format) return c.json({ message: "Unknown source" }, 400);
     const notification = format(body);
 
     try {
         const res = await send(topic, notification);
 
-        if (!res.ok) return c.body(res.message, res.status);
+        if (!res.ok) return c.json({ message: res.message }, res.status);
     } catch (err) {
         console.error("Internal Server Error", err);
-        return c.body("Internal Server Error", 500);
+        return c.json({ message: "Internal Server Error" }, 500);
     }
 
     return c.body(null, 204);
