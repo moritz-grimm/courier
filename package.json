@@ -2,10 +2,16 @@
     "name": "courier",
     "version": "1.0.0",
     "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
     "scripts": {
         "build": "tsc",
         "dev": "tsx watch src/index.ts",
-        "start": "node dist/index.js"
+        "start": "node dist/index.js",
+        "docker:build": "docker build . -t courier:dev",
+        "docker:run": "docker run -d --name courier-dev -p 3000:3000 --env-file .env courier:dev",
+        "docker:stop": "docker stop courier-dev && docker rm courier-dev"
     },
     "dependencies": {
         "@hono/node-server": "^2.0.8",
@@ -15,7 +21,7 @@
     },
     "devDependencies": {
         "@moritz-grimm/eslint-config": "^2.2.0",
-        "@types/node": "^26.1.1",
+        "@types/node": "^22.20.4",
         "tsx": "^4.23.0",
         "typescript": "^6.0.3"
     }
