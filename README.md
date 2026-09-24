@@ -15,7 +15,7 @@ message, and publishes it using the real ntfy credentials.
 
 ## Setup
 
-Requires Node.js ≥ 18.
+Requires Node.js ≥ 22.
 
 ```bash
 npm install
@@ -237,5 +237,4 @@ from (formatters) and the **target** it is published to (notifiers).
 ## Roadmap
 
 - Tags/emoji per severity
-- Dockerfile for container deployment
 - Test suite with [Vitest](https://vitest.dev)
